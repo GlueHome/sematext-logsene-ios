@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = "Logsene"
-  s.version          = "1.0.0"
+  s.version          = "1.1.0"
   s.summary          = "Logsene is ELK as a Service. This library lets you collect mobile analytics and log data from your iOS applications using Logsene."
 
   s.description      = <<-DESC
@@ -21,7 +21,7 @@ Pod::Spec.new do |s|
   # s.screenshots     = "www.example.com/screenshots_1", "www.example.com/screenshots_2"
   s.license          = 'Apache 2.0'
   s.author           = { "Sematext Group, Inc." => "pods@sematext.com" }
-  s.source           = { :git => "https://github.com/sematext/sematext-logsene-ios.git", :tag => s.version.to_s }
+  s.source           = { :git => "https://github.com/GlueHome/sematext-logsene-ios.git", :tag => s.version.to_s }
   s.social_media_url = 'https://twitter.com/sematext'
 
   s.platform     = :ios, '8.0'
@@ -34,5 +34,5 @@ Pod::Spec.new do |s|
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
   # s.frameworks = 'UIKit', 'MapKit'
-  s.dependency 'SQLite.swift', '~> 0.10.1'
+  s.dependency 'SQLite.swift', '~> 0.11.0'
 end
