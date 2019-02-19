@@ -19,9 +19,8 @@ func _NSLogCStringFunction() -> NSLogCStringFunc?
 */
 public func LLogNSLogMessages(logToConsole: Bool = true) {
     _NSSetLogCStringFunction() { (cstr, length, syslogBanner) in
-        if let message = String.fromCString(cstr) {
-            print("nslog: \(message)")
-            LLogInfo(message)
-        }
+        let message = String(cString: cstr)
+        print("nslog: \(message)")
+        LLogInfo(message)
     }
 }

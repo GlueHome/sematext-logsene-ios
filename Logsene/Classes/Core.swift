@@ -1,13 +1,12 @@
 import Foundation
 
 /// Alias for dictionary String:AnyObject, but must be a valid json object (enforced in LLogEvent()).
-public typealias JsonObject = [String: AnyObject]
+public typealias JsonObject = [String: Any]
 
 /// Holds static information.
 struct Logsene {
     static var worker: Worker?
-    static var onceToken: dispatch_once_t = 0
-    static var defaultMeta: [String: AnyObject]?
+    static var defaultMeta: [String: Any]?
 }
 
 /**
@@ -21,16 +20,19 @@ struct Logsene {
         - receiverUrl: The receiver url (optional).
         - maxOfflineMessages: The maximum number of messages (5,000 by default) stored while device is offline (optional).
 */
+private var initialized = false
 public func LogseneInit(appToken: String, type: String, receiverUrl: String = "https://logsene-receiver.sematext.com", maxOfflineMessages: Int = 5000) throws {
-    var maybeError: ErrorType? = nil
-    dispatch_once(&Logsene.onceToken) {
-        let client = LogseneClient(receiverUrl: receiverUrl, appToken: appToken, configuration: NSURLSessionConfiguration.defaultSessionConfiguration())
-        do {
-            Logsene.worker = try Worker(client: client, type: type, maxOfflineMessages: maxOfflineMessages)
-        } catch (let err) {
-            NSLog("Unable to initialize Logsene worker: \(err)")
-            maybeError = err
-        }
+    if initialized {
+      return
+    }
+    initialized = true
+    var maybeError: Error? = nil
+    let client = LogseneClient(receiverUrl: receiverUrl, appToken: appToken, configuration: URLSessionConfiguration.default)
+    do {
+        Logsene.worker = try Worker(client: client, type: type, maxOfflineMessages: maxOfflineMessages)
+    } catch (let err) {
+        NSLog("Unable to initialize Logsene worker: \(err)")
+        maybeError = err
     }
     if let error = maybeError {
         throw error
@@ -54,7 +56,7 @@ public func LogseneInit(appToken: String, type: String, receiverUrl: String = "h
 */
 public func LogseneSetDefaultMeta(meta: JsonObject?) {
     if meta != nil {
-        precondition(NSJSONSerialization.isValidJSONObject(meta!))
+        precondition(JSONSerialization.isValidJSONObject(meta!))
     }
     Logsene.defaultMeta = meta
 }
@@ -66,8 +68,8 @@ public func LogseneSetDefaultMeta(meta: JsonObject?) {
 
     - Precondition: `event` must be a valid json object.
 */
-public func LLogEvent(event: JsonObject) {
-    precondition(NSJSONSerialization.isValidJSONObject(event), "event must be a valid json object.")
+public func LLogEvent(_ event: JsonObject) {
+    precondition(JSONSerialization.isValidJSONObject(event), "event must be a valid json object.")
     if let worker = Logsene.worker {
         var enrichedEvent = event
         enrichEvent(&enrichedEvent)
@@ -79,27 +81,27 @@ public func LLogEvent(event: JsonObject) {
 }
 
 /// Logs a simple message with `level` set to `info`.
-public func LLogInfo(message: String) {
+public func LLogInfo(_ message: String) {
     LLogEvent(["level": "info", "message": message])
 }
 
 /// Logs a simple message with `level` set to `warn`.
-public func LLogWarn(message: String) {
+public func LLogWarn(_ message: String) {
     LLogEvent(["level": "warn", "message": message])
 }
 
 /// Logs a simple message with `level` set to `error`.
-public func LLogError(message: String) {
+public func LLogError(_ message: String) {
     LLogEvent(["level": "error", "message": message])
 }
 
 /// Logs an error.
-public func LLogError(error: ErrorType) {
+public func LLogError(error: Error) {
     LLogEvent(["level": "error", "message": "\(error)"])
 }
 
 /// Logs an error.
-public func LLogDebug(error: ErrorType) {
+public func LLogDebug(error: Error) {
     LLogEvent(["level": "debug", "message": "\(error)"])
 }
 
@@ -114,20 +116,20 @@ public func LLogError(error: NSException) {
 }
 
 /// Enriches the event with meta information.
-private func enrichEvent(inout event: JsonObject) {
+private func enrichEvent(_ event: inout JsonObject) {
     if event["@timestamp"] == nil {
-        event["@timestamp"] = NSDate().logseneTimestamp()
+        event["@timestamp"] = Date().logseneTimestamp()
     }
 
     if event["meta"] == nil {
         var meta: JsonObject = [:]
-        if let infoDictionary = NSBundle.mainBundle().infoDictionary {
+        if let infoDictionary = Bundle.main.infoDictionary {
             meta["versionName"] = infoDictionary["CFBundleShortVersionString"]!
             meta["versionCode"] = infoDictionary["CFBundleVersion"]!
         }
-        let os = NSProcessInfo.processInfo().operatingSystemVersion
+        let os = ProcessInfo.processInfo.operatingSystemVersion
         meta["osRelease"] = "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
-        meta["uuid"] = UIDevice.currentDevice().identifierForVendor!.UUIDString
+        meta["uuid"] = UIDevice.current.identifierForVendor?.uuidString
         if let defaultMeta = Logsene.defaultMeta {
             for (key, value) in defaultMeta {
                 meta[key] = value
